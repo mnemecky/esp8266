@@ -62,6 +62,7 @@ function startupMain()
             dofile("update.lua")
         else
             print("Error (init.lua): update.lua missing")
+            tmr.create():alarm(5000,tmr.ALARM_SINGLE, function() node.restart() end)
         end
 
     else
@@ -75,13 +76,14 @@ function startupMain()
 
         -- if bootfile config is set, execute it
         if (config.bootfile~="") then
-            print("Info (init.lua): Running ",config.bootfile)
             if (file.open(config.bootfile)) then
                 file.close()
                 dofile(config.bootfile)
+            else
+                print("Warning (init.lua): bootfile " .. config.bootfile .. " not found, end of execution")
             end
         else
-            print("Error (init.lua): No bootfile set, end of execution")
+            print("Warning (init.lua): No bootfile set, end of execution")
         end
     end
 end
@@ -97,7 +99,7 @@ end
 -- STA_GOT_IP
 wifi_got_ip_event = function(T)
     print("Info (init.lua): IP address acquired, ",T.IP)
-    print("Info (init.lua): Startup will resume in 5 seconds...")
+    print("Info (init.lua): Startup will resume in 5 seconds, bootfile ", config.bootfile)
     tmr.create():alarm(5000,tmr.ALARM_SINGLE, startupMain)
 end
 
@@ -113,7 +115,7 @@ wifi_disconnect_event = function(T)
 
     for key,val in pairs(wifi.eventmon.reason) do
         if val == T.reason then
-            print("Error (init.lua): Disconnect reason "..val.."("..key..")")
+            print("Error (init.lua): Disconnect reason " .. val .. "(" .. key .. ")")
             break
         end
     end
