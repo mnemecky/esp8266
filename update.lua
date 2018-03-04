@@ -73,6 +73,7 @@ function endUpdate(s,c)
         sck:on("receive", function(sck, data)
             local c = stripHeader(data)
             if (c~=nil) then
+                loadConfig(config)
                 config.bootfile = c
                 saveConfig(config)
                 node.restart()
