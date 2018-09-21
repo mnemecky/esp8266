@@ -27,7 +27,7 @@ As the solution is battery based, I wanted to utilise deep sleep state of the ES
 
 The ESP chips reset signal is a falling edge on the RST pin. The pulse on pin VT is a 400ms positive pulse, and I didn't want to wait nearly half a second before resetting the ESP. So I use a simple circuit to convert the rising edge of the pulse into a negative pulse, to provide the falling edge the ESP needs on its RST pin.
 
-![Schematic](imgs/schematic.png "Schematic including necessary pullup resistors on CH_PD and GPIO0")
+![Schematic](schematic/schematic.png "Schematic including necessary pullup resistors on CH_PD and GPIO0")
 
 The length of the pulse is defined by the choice of C1 and R3, and with 10K and 10uF I get roughly 100ms for the RC value. The ESP will start on the falling edge, so the actual length of the pulse is not really that critical.
 
