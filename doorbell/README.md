@@ -10,12 +10,12 @@ We have a cheap wireless doorbell at home, which unfortunately uses a proprietar
 
 The doorbell is a "Silverline Wireless Doorbell, Model WA-638S" purchased from Clas Ohlson here in Norway. It provides 8 chime melodies, has 64 channels to choose between in case of interference, runs on 3xAA batteries (doorbell) and one 12V V23GA battery (button).
 
-f[Doorbell](imgs/doorbell.png Inside of doorbell)
+![Doorbell](imgs/doorbell.png "Inside")
 (I forgot to take pictures before installing my improvement, so this is the 'after action' shot with the ESP board already installed.
 
 When opened, I found that the chip used is a more or less standard issue for these kinds of circuits, labeled CIR2272AN-L4. I found a [datasheet](http://www.princeton.com.tw/Portals/0/Product/PT2272.pdf) for this chip from the Taiwanese company Princeton Technology Corp, they call it PT2272. The PT 2272 is a remote controlled decoder, and they provide a matching encoder (PT2262). Pinout and functionality seem to be identical with the chip used in the current doorbell.
 
-f[Doorbell mainboard, component side](imgs/board.png The mainboard inside)
+![Doorbell mainboard, component side](imgs/board.png "The mainboard inside")
 
 The small vertical board is the actual sound generator, which is started by a short positive impulse on pin 17 (VT - valid transmission) of the decoder chip. The actual melody is provided through the data outputs D0-D3 from the decoder chip, which is send as payload in the transmission.
 
@@ -27,18 +27,18 @@ As the solution is battery based, I wanted to utilise deep sleep state of the ES
 
 The ESP chips reset signal is a falling edge on the RST pin. The pulse on pin VT is a 400ms positive pulse, and I didn't want to wait nearly half a second before resetting the ESP. So I use a simple circuit to convert the rising edge of the pulse into a negative pulse, to provide the falling edge the ESP needs on its RST pin.
 
-f[Schematic](imgs/schematic.png Schematic including necessary pullup resistors on CH_PD and GPIO0)
+![Schematic](imgs/schematic.png "Schematic including necessary pullup resistors on CH_PD and GPIO0")
 
 The length of the pulse is defined by the choice of C1 and R3, and with 10K and 10uF I get roughly 100ms for the RC value. The ESP will start on the falling edge, so the actual length of the pulse is not really that critical.
 
 When the input signal rises from 0 to Vcc, C1 is charged via R1 and R3. The resulting current accross R3 provides a base voltage on T1, enough to switch T1 'fully on'. This draws the collector towards GND, resulting in the sharp falling edge of the pulse. When C1 is charged, the voltage drops again and T1 is 'switched off'.
 
-f[Oscilloscope pic](imgs/osci1.png Oscilloscope screen dump on external power supply)
+![Oscilloscope pic](imgs/osci1.png "Oscilloscope screen dump on external power supply")
 Channel 1 (yellow) is the signal at the RST pin, Ch2 (blue) is the input signal (VT) from the decoder chip. Both signals are actually 3.3V, Ch1 is set at 500mV/Div, while Ch 2 is at 1V/Div. Testing with external power supply. Triggering on rising edge on Ch2 (the input signal).
 
 While testing, I used an external power supply to provide stable 3.3V to the circuit, which worked fine as can be seen from the scope picture. But when I connected the circuit to the battery, I experienced that the pulse created was different. It looked like the signal from the RC net was not high enough for T1 to go into saturation, and I realized that I needed to bias the input.
 
-f[Oscilloscope pic](imgs/osci2.png Oscilloscope screen dump on battery power)
+![Oscilloscope pic](imgs/osci2.png "Oscilloscope screen dump on battery power")
 First test on battery - clearly a different signal!
 
 I introduced R2, which together with R3 is a voltage divider providing a biasing voltage of about 0.27V to the base of T1. This is enough to raise the signal, and to provide a clear RST pulse also while on battery.
@@ -51,7 +51,7 @@ While sleeping, I measure about ~10-15 mV regardless whether the ESP is connecte
 
 When the doorbell is ringing, I see the current rise to about 40-50mA, with spikes up to 200mA for about 2.5 seconds before dropping to 10-15mA again.
 
-f[Oscilloscope pic](imgs/osci3.png Oscilloscope screen dump during current measurement)
+![Oscilloscope pic](imgs/osci3.png "Oscilloscope screen dump during current measurement")
 Current rises to 40-50mA when ESP is activated, falls to standard level when ESP goes into deep sleep.
 
 The red LED on the ESP board is removed, as this would just uncessarily drain the battery. The LED is not visible anyway from outside.
