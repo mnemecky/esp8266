@@ -39,6 +39,7 @@ function checkUpdate()
             if string.find(data, "UPDATE")~=nil then
                 config.update="true"
                 saveConfig(config)
+                print("Info (init.lua): Update requested, restarting")
                 node.restart()
             end
         end
@@ -51,7 +52,7 @@ function startupMain()
 
     -- check for update request
     if (config.update=="true") then
-        print("Info (init.lua): Update requested")
+        print("Info (init.lua): Starting update")
 
         -- remove update flag to prevent boot loop
         config.update="false"
@@ -61,7 +62,7 @@ function startupMain()
             file.close()
             dofile("update.lua")
         else
-            print("Error (init.lua): update.lua missing")
+            print("Error (init.lua): update.lua missing, restarting in 5 seconds")
             tmr.create():alarm(5000,tmr.ALARM_SINGLE, function() node.restart() end)
         end
 

@@ -50,10 +50,7 @@ end
 -- strip for header
 --
 function stripHeader(c)
-    local nStart, nEnd = string.find(c, "\n\n")
-    if (nEnd == nil) then
-        nStart, nEnd = string.find(c, "\r\n\r\n")
-    end
+    local nStart, nEnd = string.find(c, "\r\n\r\n")
     if (nEnd ~= nil) then
         c = string.sub(c,nEnd+1)
         return c
@@ -73,6 +70,7 @@ function endUpdate(s,c)
         sck:on("receive", function(sck, data)
             local c = stripHeader(data)
             if (c~=nil) then
+                print("Info (update.lua): Updating config, set bootfile to " .. c)
                 loadConfig(config)
                 config.bootfile = c
                 saveConfig(config)
@@ -103,6 +101,8 @@ function downloadFiles(s,c)
     local f = splitString(c, "\n")
     numFiles = table.getn(f)
 
+    print("Info (update.lua): Downloading " .. numFiles .. " files")
+
     for k, v in pairs(f) do
         local buffer = nil
         local maxlength = 1600
@@ -120,6 +120,7 @@ function downloadFiles(s,c)
                 end
             end
             if (payloadFound) then
+                print("Info (update.lua): writing " .. #data .. " bytes to file " .. v)
                 file.open(v,"a+")
                 file.write(data)
                 file.close()
