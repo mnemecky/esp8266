@@ -27,17 +27,17 @@ end
 -- Update status to MQTT
 function mqtt_update()
     if (gpio.read(relayPin) == 0) then
-        m:publish("/" .. sonoff.topicRoot .. "/" .. sonoff.roomID .. "/" .. sonoff.deviceID .. "/state","OFF",0,0)
+        m:publish(sonoff.mqttTopic .. "/state","OFF",0,0)
     else
-        m:publish("/" .. sonoff.topicRoot .. "/".. sonoff.roomID .."/" .. sonoff.deviceID .. "/state","ON",0,0)
+        m:publish(sonoff.mqttTopic .. "/state","ON",0,0)
     end
 end
 
 -- Subscribe to MQTT
 function mqtt_sub()
     mqttAct()
-    m:subscribe("/" .. sonoff.topicRoot .. "/".. sonoff.roomID .."/" .. sonoff.deviceID,0, function(conn)
-        print("Info (sonoff.lua): MQTT subscribed to /" .. sonoff.topicRoot .. "/" .. sonoff.roomID .."/" .. sonoff.deviceID)
+    m:subscribe(sonoff.mqttTopic, 0, function(conn)
+        print("Info (sonoff.lua): MQTT subscribed to " .. sonoff.mqttTopic)
     end)
 end
 
@@ -60,7 +60,7 @@ gpio.trig(buttonPin, "down",function (level)
     end
 end)
 
-sonoff = { mqttBroker="", mqttUser="", mqttPass="", topicRoot="", roomID="", deviceID="" }
+sonoff = { mqttBroker="", mqttPort="1883", mqttUser="", mqttPass="", mqttTopic="", startupState="OFF" }
 
 -- load config file
 if (not file.open("sonoff.ini","r")) then
@@ -73,14 +73,14 @@ else
     end
 
     -- MQTT connection
-    m = mqtt.Client("Sonoff-" .. sonoff.roomID .. "-" .. sonoff.deviceID, 180, sonoff.mqttUser, sonoff.mqttPass)
+    m = mqtt.Client(node.chipid(), 180, sonoff.mqttUser, sonoff.mqttPass)
  
-    -- MQTT last will and testament
-    m:lwt("/lwt", "Sonoff " .. sonoff.deviceID, 0, 0)
+    -- MQTT last will and testament - inform that device is OFF
+    m:lwt(sonoff.mqttTopic .. "/state", "OFF")
 
-    -- on MQTT offline, reconnect
+    -- on MQTT offline, restart
     m:on("offline", function(con)
-        print ("Info (sonoff.lua): MQTT reconnecting to " .. sonoff.mqttBroker)
+        print ("Info (sonoff.lua): MQTT connection to " .. sonoff.mqttBroker .. " lost, restarting.")
         tmr.alarm(1, 10000, 0, function() node.restart() end)
     end)
 
@@ -98,8 +98,16 @@ else
         mqtt_update()
     end)
 
-    m:connect(sonoff.mqttBroker, 1883, 0, function(conn)
-        print("Info (sonoff.lua): MQTT connected to " .. sonoff.mqttBroker)
-        mqtt_sub() -- run the subscription function
+    m:connect(sonoff.mqttBroker, sonoff.mqttPort, 0, function(conn)
+        print("Info (sonoff.lua): MQTT connected to " .. sonoff.mqttBroker .. ":" .. sonoff.mqttPort)
+        mqtt_sub()
+        if( sonoff.startupState == "OFF" ) then
+            gpio.write(relayPin, gpio.LOW)
+        elseif( sonoff.startupState == "ON" ) then
+            gpio.write(relayPin, gpio.HIGH)
+        end
+    end, function(conn, reason)
+        print("Error (sonoff.lua): MQTT connection failed (reason " .. reason .. "), restarting in 60 seconds...")
+        tmr.alarm(1, 60000, 0, function() node.restart() end)
     end)
 end
