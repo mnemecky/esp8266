@@ -62,17 +62,21 @@ function startupMain()
             file.close()
             dofile("update.lua")
         else
-            print("Error (init.lua): update.lua missing, restarting in 5 seconds")
-            tmr.create():alarm(5000,tmr.ALARM_SINGLE, function() node.restart() end)
+            print("Error (init.lua): update.lua missing, restarting...")
+            node.restart()
         end
-
     else
-        -- set up update check, requires host config to be set
         if (config.host ~= "") then
-            if (tonumber(config.interval) > 0) then
-                print("Info (init.lua): checking for updates with " .. config.host .. " (" .. config.interval .. " seconds)")
-                tmr.create():alarm(tonumber(config.interval)*1000, tmr.ALARM_AUTO, checkUpdate)
+
+            local updateInterval = tonumber(config.interval)
+            if (updateInterval < 1) then
+                updateInterval = 60
             end
+
+            -- set up update check
+            print("Info (init.lua): setting up auto timer for check with " .. config.host .. " (" .. updateInterval .. " seconds)")
+            tmr.create():alarm(updateInterval*1000, tmr.ALARM_AUTO, checkUpdate )
+
         end
 
         -- if bootfile config is set, execute it
@@ -102,6 +106,13 @@ wifi_got_ip_event = function(T)
     print("Info (init.lua): IP address acquired, ",T.IP)
     print("Info (init.lua): Startup will resume in 5 seconds, bootfile ", config.bootfile)
     tmr.create():alarm(5000,tmr.ALARM_SINGLE, startupMain)
+end
+
+-- Wifi station event callback
+-- STA_DHCP_TIMEOUT
+wifi_dhcptimeout_event = function(T)
+    print("Info (init.lua): DHCP timeout, restarting")
+    tmr.create():alarm(5000, tmr.ALARM_SINGLE, node.restart())
 end
 
 -- Wifi station event callback
@@ -157,6 +168,7 @@ loadConfig(config)
 wifi.eventmon.register(wifi.eventmon.STA_CONNECTED, wifi_connect_event)
 wifi.eventmon.register(wifi.eventmon.STA_GOT_IP, wifi_got_ip_event)
 wifi.eventmon.register(wifi.eventmon.STA_DISCONNECTED, wifi_disconnect_event)
+wifi.eventmon.register(wifi.eventmon.STA_DHCP_TIMEOUT, wifi_dhcptimeout_event)
 
 -- setup Wifi
 print("Info (init.lua): Connecting to AP")
